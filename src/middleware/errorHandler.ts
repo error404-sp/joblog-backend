@@ -6,7 +6,7 @@ export function errorHandler(
   res: Response,
   next: NextFunction
 ) {
-  console.error("❌ Internal Server Error:", err);
+  console.error("Internal Server Error:", err);
 
   res.status(500).json({
     success: false,

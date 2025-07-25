@@ -34,4 +34,8 @@ export const pollJobs = async (
     res.off("close", cleanup);
     res.off("error", cleanup);
   };
+
+  jobQueue.once("job_added", onJob);
+  res.once("close", cleanup);
+  res.once("error", cleanup);
 };

@@ -5,10 +5,11 @@ import morgan from "morgan";
 import { errorHandler } from "./middleware/errorHandler";
 import jobRoutes from "./jobs/job.routes";
 import agentRoutes from "./poll/poll.route";
+import { jobQueue } from "./utils/jobQueue";
 
 dotenv.config();
 
-const app = express();
+export const app = express();
 
 app.use(cors());
 app.use(express.json());
