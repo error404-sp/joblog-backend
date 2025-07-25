@@ -41,5 +41,5 @@ describe("pollJobs API", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.jobs.length).toBe(0);
-  }, 31000); // Allow enough time for 30s timeout
+  }, 31000);
 });
