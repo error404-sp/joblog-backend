@@ -1,34 +1,67 @@
-const { workerData, parentPort } = require("worker_threads");
-const { exec } = require("child_process");
+const { parentPort, workerData } = require("worker_threads");
+const { execFile, spawn } = require("child_process");
+const { sendUpdate } = require("../socket");
 
-const job = workerData;
+const { job } = workerData;
 
 function send(type, data) {
-  parentPort.postMessage({ ...data, type });
+  parentPort.postMessage({ type, jobId: job.id, data });
 }
 
-(async () => {
-  try {
-    const command = job.type === "script" ? `sh ${job.command}` : job.command;
+function runCommand() {
+  const command = job.command;
+  const params = job.parameters ? Object.values(job.parameters) : [];
 
-    const process = exec(command, { timeout: job.timeout || 60000 });
+  send("status", { status: "running" });
 
-    process.stdout.on("data", (data) => {
-      send("log", { log: data.toString(), jobId: job.id });
-    });
+  const child = spawn(command, params, { shell: true });
 
-    process.stderr.on("data", (data) => {
-      send("log", { log: data.toString(), jobId: job.id });
-    });
+  child.stdout.on("data", (data) => {
+    send("log", data.toString());
+  });
 
-    process.on("exit", (code) => {
+  child.stderr.on("data", (data) => {
+    send("log", data.toString()); // Logs from stderr
+  });
+
+  child.on("error", (err) => {
+    send("status", { status: "failed", output: err.message });
+  });
+
+  child.on("close", (code) => {
+    if (code === 0) {
+      send("status", { status: "completed", output: "Success" });
+    } else {
       send("status", {
-        status: code === 0 ? "completed" : "failed",
-        output: `Exit code: ${code}`,
-        jobId: job.id,
+        status: "failed",
+        output: `Exited with code ${code}`,
       });
-    });
-  } catch (error) {
-    send("status", { status: "failed", output: error.message, jobId: job.id });
-  }
-})();
+    }
+  });
+
+  return child;
+}
+
+function runScript() {
+  const scriptPath = job.command;
+  const params = job.parameters ? Object.values(job.parameters) : [];
+
+  send("status", { status: "running" });
+
+  execFile(scriptPath, params, (err, stdout, stderr) => {
+    if (err) {
+      send("status", { status: "failed", output: stderr || err.message });
+    } else {
+      send("log", stdout);
+      send("status", { status: "completed", output: stdout });
+    }
+  });
+}
+
+if (job.status === "cancelled") {
+  send("status", { status: "cancelled" });
+} else if (job.type === "command") {
+  runCommand();
+} else {
+  runScript();
+}
