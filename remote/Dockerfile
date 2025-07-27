@@ -13,5 +13,6 @@ RUN npm install --production
 # Copy the rest of the app
 COPY . .
 
-# Expose no port because agent only connects outbound
-CMD ["npm", "start"]
+RUN npm install -g pm2
+
+CMD ["pm2-runtime", "index.js"]
