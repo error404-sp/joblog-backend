@@ -27,13 +27,14 @@ class WorkerPool {
     this.activeWorkers.set(job.id, worker);
 
     worker.on("message", (data) => {
-      const { type, jobId, data: payload } = data;
-      sendUpdate(type, jobId, payload);
+      const { type, data: payload } = data;
+      console.log(data);
+      sendUpdate(type, job.id, payload);
 
       if (type === "status" && ["completed", "failed"].includes(data.status)) {
-        this.activeWorkers.delete(jobId);
+        this.activeWorkers.delete(job.id);
       } else if (type === "status" && ["cancelled"].includes(data.status)) {
-        this.cancelJob(jobId);
+        this.cancelJob(job.id);
       }
     });
 
@@ -66,7 +67,7 @@ class WorkerPool {
   cleanupAll() {
     for (const [jobId, worker] of this.activeWorkers.entries()) {
       worker.terminate();
-      sendUpdate("status", jobId, { status: "cancelled" });
+      sendUpdate("status", job.id, { status: "cancelled" });
     }
     this.activeWorkers.clear();
   }

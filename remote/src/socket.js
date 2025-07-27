@@ -8,6 +8,7 @@ let retryDelay = 2000; // 2s initial delay
 const MAX_DELAY = 60000; // 1 min max
 const HEALTH_BASE_INTERVAL = 5 * 60 * 1000; // 5 min
 const HEALTH_BACKOFF_MAX = 60 * 60 * 1000; // 60 min
+
 function connectSocket() {
   socket = io(`${process.env.BACKEND_URL}`, { reconnection: true });
 
@@ -56,7 +57,7 @@ function connectSocket() {
   });
 }
 
-function sendUpdate(data) {
+function sendUpdate(type, jobId, data) {
   if (socket && socket.connected) {
     socket.emit(type, { jobId, ...data });
   } else {

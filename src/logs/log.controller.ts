@@ -12,7 +12,8 @@ import { getJobById } from "../jobs/job.helper";
 export function initSocket(server: http.Server) {
   const io = new Server(server, {
     cors: {
-      origin: "*",
+      origin: "*", // Allow frontend/agent
+      methods: ["GET", "POST"],
     },
   });
 

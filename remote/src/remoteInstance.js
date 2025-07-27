@@ -3,7 +3,8 @@ const queue = require("./queue");
 const workerPool = require("./workerPool");
 const { connectSocket } = require("./socket");
 
-const POLL_API = "http://localhost:5000/api/agent/poll";
+const POLL_API =
+  "https://joblog-backend-production.up.railway.app/api/agent/poll";
 const MAX_BACKOFF = 120_000; // 2 min
 const POLL_INTERVAL_EMPTY = 2_000; // 2s (when there are jobs running)
 const POLL_INTERVAL_NORMAL = 5_000; // default polling interval
