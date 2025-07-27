@@ -8,18 +8,14 @@ import {
   updateJobStatus,
 } from "./log.helper";
 import { getJobById } from "../jobs/job.helper";
+import cors from "cors";
 
 export function initSocket(server: http.Server) {
-  const io = new Server(server, {
-    cors: {
-      origin: "*", // Allow frontend/agent
-      methods: ["GET", "POST"],
-    },
-  });
+  const io = new Server(server);
 
   io.on("connection", (socket) => {
+    console.log("socket connected");
     console.log(`Agent connected: ${socket.id}`);
-
     // Listen for logs
     socket.on("log", async ({ jobId, log }) => {
       try {
