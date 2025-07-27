@@ -2,13 +2,14 @@ const { io } = require("socket.io-client");
 const workerPool = require("./workerPool");
 const os = require("node:os");
 const queue = require("./queue");
+require("dotenv").config();
 
 let socket;
 let retryDelay = 2000; // 2s initial delay
 const MAX_DELAY = 60000; // 1 min max
 const HEALTH_BASE_INTERVAL = 5 * 60 * 1000; // 5 min
 const HEALTH_BACKOFF_MAX = 60 * 60 * 1000; // 60 min
-const BACKEND_URL = "http://localhost:5000";
+const BACKEND_URL = process.env.BACKEND_URL;
 function connectSocket() {
   socket = io(BACKEND_URL, {
     transports: ["websocket"],

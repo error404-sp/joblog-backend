@@ -2,12 +2,10 @@ const fetch = require("node-fetch");
 const queue = require("./queue");
 const workerPool = require("./workerPool");
 const { connectSocket } = require("./socket");
+require("dotenv").config();
 
-const POLL_API =
-  "https://joblog-backend-production.up.railway.app/api/agent/poll";
-const MAX_BACKOFF = 120_000; // 2 min
-const POLL_INTERVAL_EMPTY = 2_000; // 2s (when there are jobs running)
-const POLL_INTERVAL_NORMAL = 5_000; // default polling interval
+const POLL_API = `${process.env.BACKEND_URL}/api/agent/poll`;
+const MAX_BACKOFF = 240_000; // 4 MIN
 
 let backoffDelay = 5000;
 let pollIntervalId = null;

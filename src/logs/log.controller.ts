@@ -24,7 +24,6 @@ export function initSocket(server: http.Server) {
     socket.on("log", async ({ jobId, log }) => {
       try {
         await insertJobLog(jobId, log);
-        io.emit(`job_log_${jobId}`, log, Date.now());
         io.emit(`log`, jobId, log, Date.now());
       } catch (error) {
         console.error("Error saving log:", error);
