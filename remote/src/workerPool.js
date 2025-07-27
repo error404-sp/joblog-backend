@@ -16,7 +16,6 @@ class WorkerPool {
   runJob(job) {
     // Handle cancelled job before assignment
     if (job.status === "cancelled") {
-      console.log(`🚫 Job ${job.id} was already cancelled`);
       sendUpdate("status", job.id, { status: "cancelled" });
       return;
     }
@@ -27,13 +26,15 @@ class WorkerPool {
     this.activeWorkers.set(job.id, worker);
 
     worker.on("message", (data) => {
-      const { type, data: payload } = data;
-      console.log(data);
-      sendUpdate(type, job.id, payload);
+      const { type, jobId, data: payload } = data;
+      sendUpdate(type, jobId, payload);
 
-      if (type === "status" && ["completed", "failed"].includes(data.status)) {
+      if (
+        type === "status" &&
+        ["completed", "failed"].includes(payload.status)
+      ) {
         this.activeWorkers.delete(job.id);
-      } else if (type === "status" && ["cancelled"].includes(data.status)) {
+      } else if (type === "status" && ["cancelled"].includes(payload.status)) {
         this.cancelJob(job.id);
       }
     });
@@ -70,6 +71,10 @@ class WorkerPool {
       sendUpdate("status", job.id, { status: "cancelled" });
     }
     this.activeWorkers.clear();
+  }
+
+  size() {
+    return this.activeWorkers.size;
   }
 }
 

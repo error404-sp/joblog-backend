@@ -10,13 +10,12 @@ const HEALTH_BASE_INTERVAL = 5 * 60 * 1000; // 5 min
 const HEALTH_BACKOFF_MAX = 60 * 60 * 1000; // 60 min
 const BACKEND_URL = "http://localhost:5000";
 function connectSocket() {
-  let socket = io(BACKEND_URL, {
+  socket = io(BACKEND_URL, {
     transports: ["websocket"],
     reconnection: true,
     reconnectionDelay: 2000,
     reconnectionAttempts: Infinity,
   });
-  console.log(socket.connected);
 
   socket.on("connect", () => {
     console.log("Socket connected to backend");
@@ -64,9 +63,8 @@ function connectSocket() {
 }
 
 function sendUpdate(type, jobId, data) {
-  console.log(type, socket && socket.connected);
   if (socket && socket.connected) {
-    socket.emit(type, { jobId, ...data });
+    socket.emit(`${type}`, { jobId, ...data });
   } else {
     console.warn("Socket not connected. Skipping update:", jobId, data);
   }

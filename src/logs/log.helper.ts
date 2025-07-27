@@ -22,18 +22,18 @@ export async function insertJobOutput(
   success: boolean
 ) {
   const id = uuidv4();
+
   await pool.query(
     `INSERT INTO job_outputs (id, job_id, output, success, retries)
-       VALUES ($1, $2, $3, $4, 0)
-       ON CONFLICT (job_id)
-       DO UPDATE SET 
-         output = EXCLUDED.output, 
-         success = EXCLUDED.success,
-         retries = CASE 
-                     WHEN job_outputs.retries < 3 
-                     THEN job_outputs.retries + 1 
-                     ELSE job_outputs.retries 
-                   END`,
+     VALUES ($1, $2, $3, $4, 0)
+     ON CONFLICT (job_id)
+     DO UPDATE SET 
+        output = EXCLUDED.output,
+        success = EXCLUDED.success,
+        retries = CASE 
+                    WHEN job_outputs.retries < 3 THEN job_outputs.retries + 1
+                    ELSE job_outputs.retries
+                  END`,
     [id, job_id, output, success]
   );
 }
@@ -44,4 +44,13 @@ export async function getRetries(jobId: string) {
     [jobId]
   );
   return result.rows[0]?.retries || 0;
+}
+
+export async function updateHealthStats(health: any) {
+  const id = uuidv4();
+  await pool.query(
+    `INSERT INTO agent_health (id, agent_id, workers, queue_length, memory)
+         VALUES ($1, $2, $3, $4, $5)`,
+    [id, health.agentId, health.workers, health.queueLength, health.memory]
+  );
 }

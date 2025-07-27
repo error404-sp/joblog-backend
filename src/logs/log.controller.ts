@@ -5,6 +5,7 @@ import {
   getRetries,
   insertJobLog,
   insertJobOutput,
+  updateHealthStats,
   updateJobStatus,
 } from "./log.helper";
 import { getJobById } from "../jobs/job.helper";
@@ -18,16 +19,13 @@ export function initSocket(server: http.Server) {
   });
 
   io.on("connection", (socket) => {
-    console.log("socket connected");
-    console.log(`Agent connected: ${socket.id}`);
+    console.log(`Socket connected: ${socket.id}`);
     // Listen for logs
     socket.on("log", async ({ jobId, log }) => {
       try {
-        if (jobId && log) {
-          await insertJobLog(jobId, log);
-          io.emit(`job_log_${jobId}`, log, Date.now());
-          io.emit(`log`, jobId, log, Date.now());
-        }
+        await insertJobLog(jobId, log);
+        io.emit(`job_log_${jobId}`, log, Date.now());
+        io.emit(`log`, jobId, log, Date.now());
       } catch (error) {
         console.error("Error saving log:", error);
       }
@@ -81,16 +79,18 @@ export function initSocket(server: http.Server) {
       }
     });
 
-    socket.on("agent_health", (data, ack) => {
+    socket.on("agent_health", async (data, ack) => {
       try {
         console.log(`✅ Health update from ${data.agentId}:`, data);
-
+        const { agentId, workers, queueLength, memory } = data;
+        await updateHealthStats(data);
         // Forward health update to frontend
         io.emit("agent:health", {
           agentId: data.agentId,
           workers: data.workers,
           queueLength: data.queueLength,
           memory: data.memory,
+          time: Date.now(),
         });
 
         ack({ success: true });
