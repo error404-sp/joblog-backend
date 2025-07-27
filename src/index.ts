@@ -20,6 +20,7 @@ app.use(morgan("dev"));
 app.use("/api/jobs", jobRoutes);
 app.use("/api/agent", agentRoutes);
 initSocket(server);
+server.listen(process.env.PORT);
 
 app.use(errorHandler);
 
