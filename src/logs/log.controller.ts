@@ -24,7 +24,7 @@ export function initSocket(server: http.Server) {
     socket.on("log", async ({ jobId, log }) => {
       try {
         await insertJobLog(jobId, log);
-        io.emit(`log`, jobId, log, Date.now());
+        io.emit(`log`, { jobId, log, time: Date.now() });
       } catch (error) {
         console.error("Error saving log:", error);
       }
@@ -36,27 +36,31 @@ export function initSocket(server: http.Server) {
         switch (status) {
           case "running":
             await updateJobStatus(jobId, "running");
-            io.emit(`job_status_${jobId}`, status, Date.now());
+            io.emit(`job_status_${jobId}`, { status, time: Date.now() });
             break;
 
           case "completed":
             await updateJobStatus(jobId, "completed");
             await insertJobOutput(jobId, output, true);
             const currentRetries = await getRetries(jobId);
-            io.emit(
-              `job_status_${jobId}`,
+            io.emit(`job_status_${jobId}`, {
               status,
               output,
-              currentRetries,
-              Date.now()
-            );
+              retries: currentRetries,
+              time: Date.now(),
+            });
             break;
 
           case "failed":
             await updateJobStatus(jobId, "failed");
             await insertJobOutput(jobId, output, false);
             const retries = await getRetries(jobId);
-            io.emit(`job_status_${jobId}`, status, output, retries, Date.now());
+            io.emit(`job_status_${jobId}`, {
+              status,
+              output,
+              retries,
+              time: Date.now(),
+            });
 
             // Retry logic: fetch job and requeue
             const job = await getJobById(jobId);
@@ -67,7 +71,7 @@ export function initSocket(server: http.Server) {
 
           case "cancelled":
             await updateJobStatus(jobId, "cancelled");
-            io.emit(`job_status_${jobId}`, status, Date.now());
+            io.emit(`job_status_${jobId}`, { status, time: Date.now() });
             break;
 
           default:
@@ -83,7 +87,7 @@ export function initSocket(server: http.Server) {
         console.log(`✅ Health update from ${data.agentId}:`, data);
         const { agentId, workers, queueLength, memory } = data;
         await updateHealthStats(data);
-        // Forward health update to frontend
+
         io.emit("agent:health", {
           agentId: data.agentId,
           workers: data.workers,
