@@ -8,10 +8,14 @@ import {
   updateJobStatus,
 } from "./log.helper";
 import { getJobById } from "../jobs/job.helper";
-import cors from "cors";
 
 export function initSocket(server: http.Server) {
-  const io = new Server(server);
+  const io = new Server(server, {
+    cors: {
+      origin: "*", // Allow frontend/agent
+      methods: ["GET", "POST"],
+    },
+  });
 
   io.on("connection", (socket) => {
     console.log("socket connected");
