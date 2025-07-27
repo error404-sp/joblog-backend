@@ -29,7 +29,19 @@ export async function insertJobOutput(
        DO UPDATE SET 
          output = EXCLUDED.output, 
          success = EXCLUDED.success,
-         retries = job_outputs.retries + 1`,
+         retries = CASE 
+                     WHEN job_outputs.retries < 3 
+                     THEN job_outputs.retries + 1 
+                     ELSE job_outputs.retries 
+                   END`,
     [id, job_id, output, success]
   );
+}
+
+export async function getRetries(jobId: string) {
+  const result = await pool.query(
+    `SELECT retries FROM job_outputs WHERE job_id = $1 ORDER BY created_at DESC LIMIT 1`,
+    [jobId]
+  );
+  return result.rows[0]?.retries || 0;
 }

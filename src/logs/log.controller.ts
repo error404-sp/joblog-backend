@@ -1,7 +1,12 @@
 import { Server } from "socket.io";
 import http from "http";
 import { jobQueue } from "../utils/jobQueue";
-import { insertJobLog, insertJobOutput, updateJobStatus } from "./log.helper";
+import {
+  getRetries,
+  insertJobLog,
+  insertJobOutput,
+  updateJobStatus,
+} from "./log.helper";
 import { getJobById } from "../jobs/job.helper";
 
 export function initSocket(server: http.Server) {
@@ -19,6 +24,8 @@ export function initSocket(server: http.Server) {
       try {
         if (jobId && log) {
           await insertJobLog(jobId, log);
+          io.emit(`job_log_${jobId}`, log, Date.now());
+          io.emit(`log`, jobId, log, Date.now());
         }
       } catch (error) {
         console.error("Error saving log:", error);
@@ -31,16 +38,27 @@ export function initSocket(server: http.Server) {
         switch (status) {
           case "running":
             await updateJobStatus(jobId, "running");
+            io.emit(`job_status_${jobId}`, status, Date.now());
             break;
 
           case "completed":
             await updateJobStatus(jobId, "completed");
-            await insertJobOutput(jobId, output || "Success", true);
+            await insertJobOutput(jobId, output, true);
+            const currentRetries = await getRetries(jobId);
+            io.emit(
+              `job_status_${jobId}`,
+              status,
+              output,
+              currentRetries,
+              Date.now()
+            );
             break;
 
           case "failed":
             await updateJobStatus(jobId, "failed");
-            await insertJobOutput(jobId, output || "Failed", false);
+            await insertJobOutput(jobId, output, false);
+            const retries = await getRetries(jobId);
+            io.emit(`job_status_${jobId}`, status, output, retries, Date.now());
 
             // Retry logic: fetch job and requeue
             const job = await getJobById(jobId);
@@ -51,6 +69,7 @@ export function initSocket(server: http.Server) {
 
           case "cancelled":
             await updateJobStatus(jobId, "cancelled");
+            io.emit(`job_status_${jobId}`, status, Date.now());
             break;
 
           default:
@@ -58,6 +77,25 @@ export function initSocket(server: http.Server) {
         }
       } catch (error) {
         console.error(`Error handling status for job ${jobId}:`, error);
+      }
+    });
+
+    socket.on("agent_health", (data, ack) => {
+      try {
+        console.log(`✅ Health update from ${data.agentId}:`, data);
+
+        // Forward health update to frontend
+        io.emit("agent:health", {
+          agentId: data.agentId,
+          workers: data.workers,
+          queueLength: data.queueLength,
+          memory: data.memory,
+        });
+
+        ack({ success: true });
+      } catch (err) {
+        console.error("❌ Failed to handle agent_health:", err);
+        ack({ success: false });
       }
     });
 
