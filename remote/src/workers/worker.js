@@ -21,7 +21,7 @@ function runCommand() {
   });
 
   child.stderr.on("data", (data) => {
-    send("log", data.toString()); // Logs from stderr
+    send("log", data.toString());
   });
 
   child.on("error", (err) => {

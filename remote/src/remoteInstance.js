@@ -25,13 +25,11 @@ async function pollJobs() {
     if (backoffDelay == MAX_BACKOFF) backoffDelay = 15000;
     if (jobs && jobs.length > 0) {
       queue.batchEnqueue(jobs);
-      backoffDelay = 5000;
+      backoffDelay = 2000;
     } else {
       backoffDelay = Math.min(backoffDelay * 2, MAX_BACKOFF);
     }
-    console.log(backoffDelay);
   } catch (err) {
-    console.error("Polling failed:", err.message);
     backoffDelay = Math.min(backoffDelay * 2, MAX_BACKOFF);
   }
 }

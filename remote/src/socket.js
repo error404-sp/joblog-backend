@@ -1,7 +1,7 @@
 const { io } = require("socket.io-client");
 const workerPool = require("./workerPool");
-import os from "os";
-import queue from "./queue";
+const os = require("node:os");
+const queue = require("./queue");
 
 let socket;
 let retryDelay = 2000; // 2s initial delay
@@ -56,9 +56,9 @@ function connectSocket() {
   });
 }
 
-function sendUpdate(jobId, data) {
+function sendUpdate(data) {
   if (socket && socket.connected) {
-    socket.emit("jobUpdate", { jobId, ...data });
+    socket.emit(type, { jobId, ...data });
   } else {
     console.warn("Socket not connected. Skipping update:", jobId, data);
   }

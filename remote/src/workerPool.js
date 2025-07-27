@@ -2,7 +2,7 @@ const { Worker } = require("worker_threads");
 const path = require("path");
 const { sendUpdate } = require("./socket");
 
-const MAX_WORKERS = 3;
+const MAX_WORKERS = 2;
 
 class WorkerPool {
   constructor() {
@@ -17,7 +17,7 @@ class WorkerPool {
     // Handle cancelled job before assignment
     if (job.status === "cancelled") {
       console.log(`🚫 Job ${job.id} was already cancelled`);
-      sendUpdate(job.id, { status: "cancelled" });
+      sendUpdate("status", job.id, { status: "cancelled" });
       return;
     }
 
@@ -27,16 +27,19 @@ class WorkerPool {
     this.activeWorkers.set(job.id, worker);
 
     worker.on("message", (data) => {
-      if (data.type === "log") {
-        sendUpdate(data.jobId, { type: "log", log: data.message });
-      } else if (data.type === "status") {
-        sendUpdate(data.jobId, { status: data.status, output: data.output });
+      const { type, jobId, data: payload } = data;
+      sendUpdate(type, jobId, payload);
+
+      if (type === "status" && ["completed", "failed"].includes(data.status)) {
+        this.activeWorkers.delete(jobId);
+      } else if (type === "status" && ["cancelled"].includes(data.status)) {
+        this.cancelJob(jobId);
       }
     });
 
     worker.on("error", (err) => {
       console.error(`Worker error for job ${job.id}:`, err.message);
-      sendUpdate(job.id, { status: "failed", output: err.message });
+      sendUpdate("status", job.id, { status: "failed", output: err.message });
       this.activeWorkers.delete(job.id);
     });
 
@@ -53,7 +56,7 @@ class WorkerPool {
     if (worker) {
       console.log(`Cancelling job ${jobId}`);
       worker.terminate();
-      sendUpdate(jobId, { status: "cancelled" });
+      sendUpdate("status", jobId, { status: "cancelled" });
       this.activeWorkers.delete(jobId);
       return true;
     }
@@ -63,7 +66,7 @@ class WorkerPool {
   cleanupAll() {
     for (const [jobId, worker] of this.activeWorkers.entries()) {
       worker.terminate();
-      sendUpdate(jobId, { status: "cancelled" });
+      sendUpdate("status", jobId, { status: "cancelled" });
     }
     this.activeWorkers.clear();
   }
