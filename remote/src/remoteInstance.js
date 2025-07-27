@@ -30,6 +30,7 @@ async function pollJobs() {
       backoffDelay = Math.min(backoffDelay * 2, MAX_BACKOFF);
     }
   } catch (err) {
+    console.error("Polling failed:", err.message);
     backoffDelay = Math.min(backoffDelay * 2, MAX_BACKOFF);
   }
 }
