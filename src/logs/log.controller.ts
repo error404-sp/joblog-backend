@@ -39,6 +39,15 @@ export function initSocket(server: http.Server) {
     socket.on("status", async ({ jobId, status, output }) => {
       try {
         switch (status) {
+          case "cancelled":
+            io.emit(`job_status_${jobId}`, { status, time: Date.now() });
+            await updateJobStatus(jobId, "cancelled");
+            break;
+          case "queued":
+            io.emit(`job_status_${jobId}`, { status, time: Date.now() });
+            await updateJobStatus(jobId, "queued");
+            break;
+
           case "running":
             io.emit(`job_status_${jobId}`, { status, time: Date.now() });
             await updateJobStatus(jobId, "running");
@@ -72,11 +81,6 @@ export function initSocket(server: http.Server) {
             if (job) {
               jobQueue.enqueue({ ...job, priority: 5 });
             }
-            break;
-
-          case "cancelled":
-            io.emit(`job_status_${jobId}`, { status, time: Date.now() });
-            await updateJobStatus(jobId, "cancelled");
             break;
 
           default:
