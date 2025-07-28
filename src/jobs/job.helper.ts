@@ -65,3 +65,12 @@ export async function getJobById(id: string): any {
   };
   return result;
 }
+
+export async function getJobOnlyById(id: string): any {
+  const jobQuery = await pool.query(`SELECT * FROM jobs WHERE id = $1`, [id]);
+
+  const result = {
+    jobQuery: jobQuery.rows[0] || null,
+  };
+  return result;
+}

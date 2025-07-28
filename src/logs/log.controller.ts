@@ -8,7 +8,7 @@ import {
   updateHealthStats,
   updateJobStatus,
 } from "./log.helper";
-import { getJobById } from "../jobs/job.helper";
+import { getJobById, getJobOnlyById } from "../jobs/job.helper";
 
 export function initSocket(server: http.Server) {
   const io = new Server(server, {
@@ -22,7 +22,7 @@ export function initSocket(server: http.Server) {
     console.log(`Socket connected: ${socket.id}`);
 
     socket.on("job_stop", async ({ jobId }) => {
-      const job = await getJobById(jobId);
+      const job = await getJobOnlyById(jobId);
       jobQueue.enqueue({ ...job, priority: 10, status: "cancelled" });
     });
     // Listen for logs
@@ -68,7 +68,7 @@ export function initSocket(server: http.Server) {
             });
 
             // Retry logic: fetch job and requeue
-            const job = await getJobById(jobId);
+            const job = await getJobOnlyById(jobId);
             if (job) {
               jobQueue.enqueue({ ...job, priority: 5 });
             }
