@@ -23,6 +23,7 @@ export async function handleCreateJob(
       priority,
       timeout,
     });
+    console.log(job, job.id);
     jobQueue.enqueue(job);
 
     return res.status(201).json({ success: true, job });
