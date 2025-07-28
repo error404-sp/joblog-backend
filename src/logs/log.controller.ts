@@ -20,6 +20,11 @@ export function initSocket(server: http.Server) {
 
   io.on("connection", (socket) => {
     console.log(`Socket connected: ${socket.id}`);
+
+    socket.on("job_stop", async ({ jobId }) => {
+      const job = await getJobById(jobId);
+      jobQueue.enqueue({ ...job, priority: 10, status: "cancelled" });
+    });
     // Listen for logs
     socket.on("log", async ({ jobId, log }) => {
       try {
