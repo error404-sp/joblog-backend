@@ -40,8 +40,8 @@ export function initSocket(server: http.Server) {
       try {
         switch (status) {
           case "running":
-            await updateJobStatus(jobId, "running");
             io.emit(`job_status_${jobId}`, { status, time: Date.now() });
+            await updateJobStatus(jobId, "running");
             break;
 
           case "completed":
@@ -75,8 +75,8 @@ export function initSocket(server: http.Server) {
             break;
 
           case "cancelled":
-            await updateJobStatus(jobId, "cancelled");
             io.emit(`job_status_${jobId}`, { status, time: Date.now() });
+            await updateJobStatus(jobId, "cancelled");
             break;
 
           default:
