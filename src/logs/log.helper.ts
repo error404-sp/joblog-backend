@@ -30,9 +30,7 @@ export async function insertJobOutput(
      DO UPDATE SET 
         output = EXCLUDED.output,
         success = EXCLUDED.success,
-        retries = CASE 
-                    job_outputs.retries + 1
-                  END`,
+        `,
     [id, job_id, output, success]
   );
 }
