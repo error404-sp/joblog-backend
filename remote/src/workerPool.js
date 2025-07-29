@@ -14,43 +14,49 @@ class WorkerPool {
   }
 
   runJob(job) {
-    // Handle cancelled job before assignment
-    if (job.status === "cancelled") {
-      sendUpdate("status", job.id, { status: "cancelled" });
-      return;
-    }
-
-    const worker = new Worker(path.resolve(__dirname, "./workers/worker.js"), {
-      workerData: job,
-    });
-    this.activeWorkers.set(job.id, worker);
-
-    worker.on("message", (data) => {
-      const { type, jobId, data: payload } = data;
-      sendUpdate(type, jobId, payload);
-
-      if (
-        type === "status" &&
-        ["completed", "failed"].includes(payload.status)
-      ) {
-        this.activeWorkers.delete(job.id);
-      } else if (type === "status" && ["cancelled"].includes(payload.status)) {
+    if (job.id) {
+      // Handle cancelled job before assignment
+      if (job.status === "cancelled") {
+        sendUpdate("log", { log: `Job ${job.id} cancelled` });
+        sendUpdate("status", job.id, { status: "cancelled" });
         this.cancelJob(job.id);
+        return;
       }
-    });
 
-    worker.on("error", (err) => {
-      console.error(`Worker error for job ${job.id}:`, err.message);
-      sendUpdate("status", job.id, { status: "failed", output: err.message });
-      this.activeWorkers.delete(job.id);
-    });
+      const worker = new Worker(
+        path.resolve(__dirname, "./workers/worker.js"),
+        {
+          workerData: job,
+        }
+      );
 
-    worker.on("exit", (code) => {
-      if (code !== 0) {
-        console.warn(`Worker for job ${job.id} exited with code ${code}`);
-      }
-      this.activeWorkers.delete(job.id);
-    });
+      worker.on("message", (data) => {
+        const { type, jobId, data: payload } = data;
+        sendUpdate(type, jobId, payload);
+        if (type === "status" && ["cancelled"].includes(payload.status)) {
+          send("log", { log: `Job ${job.id} cancelled` });
+          this.cancelJob(job.id);
+        } else if (
+          type === "status" &&
+          ["completed", "failed"].includes(payload.status)
+        ) {
+          this.activeWorkers.delete(job.id);
+        }
+      });
+
+      worker.on("error", (err) => {
+        console.error(`Worker error for job ${job.id}:`, err.message);
+        sendUpdate("status", job.id, { status: "failed", output: err.message });
+        this.activeWorkers.delete(job.id);
+      });
+
+      worker.on("exit", (code) => {
+        if (code !== 0) {
+          console.warn(`Worker for job ${job.id} exited with code ${code}`);
+        }
+        this.activeWorkers.delete(job.id);
+      });
+    }
   }
 
   cancelJob(jobId) {

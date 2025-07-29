@@ -5,9 +5,9 @@ const { connectSocket } = require("./socket");
 require("dotenv").config();
 
 const POLL_API = `${process.env.BACKEND_URL}/api/agent/poll`;
-const MAX_BACKOFF = 240_000; // 4 MIN
+const MAX_BACKOFF = 480_000; // 4 MIN
 
-let backoffDelay = 5000;
+let backoffDelay = 30000;
 let pollIntervalId = null;
 
 async function pollJobs() {
@@ -21,7 +21,7 @@ async function pollJobs() {
     const res = await fetch(url, { method: "GET" });
     if (!res.ok) throw new Error(`Server error: ${res.status}`);
     const { jobs } = await res.json();
-    if (backoffDelay == MAX_BACKOFF) backoffDelay = 15000;
+    if ((backoffDelay = MAX_BACKOFF)) backoffDelay = 15000;
     if (jobs && jobs.length > 0) {
       queue.batchEnqueue(jobs);
       backoffDelay = 2000;
@@ -43,11 +43,11 @@ function assignJobsToWorkers() {
 }
 
 function startPolling() {
-  if (pollIntervalId) clearInterval(pollIntervalId);
+  if (pollIntervalId) clearTimeout(pollIntervalId);
 
   pollIntervalId = setInterval(async () => {
     await pollJobs();
-    assignJobsToWorkers();
+    await assignJobsToWorkers();
   }, backoffDelay);
 }
 

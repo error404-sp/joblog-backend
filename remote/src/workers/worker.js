@@ -17,7 +17,13 @@ function runCommand() {
   send("status", { status: "running" });
   send("log", { log: `Executing command: ${command} ${params.join(" ")}` });
 
-  const child = spawn(command, params, { shell: true });
+  const isWindows = process.platform === "win32";
+  const shell = isWindows ? "cmd.exe" : "sh";
+  const args = isWindows
+    ? ["/c", `${command} ${params.join(" ")}`]
+    : ["-c", `${command} ${params.join(" ")}`];
+
+  const child = spawn(shell, args, { stdio: "pipe" });
 
   // STDOUT
   child.stdout.on("data", (data) => {
@@ -58,22 +64,11 @@ function runCommand() {
 }
 
 function runScript() {
-  const scriptPath = job.command;
-  const params = job.parameters ? Object.values(job.parameters) : [];
-
-  send("status", { status: "running" });
-
-  execFile(scriptPath, params, (err, stdout, stderr) => {
-    if (err) {
-      send("status", { status: "failed", output: stderr || err.message });
-    } else {
-      send("log", { log: stdout });
-      send("status", { status: "completed", output: stdout });
-    }
-  });
+  runCommand();
 }
 
 if (job.status === "cancelled") {
+  send("log", { log: `Job ${job.id} cancelled` });
   send("status", { status: "cancelled" });
 } else if (job.type === "command") {
   runCommand();

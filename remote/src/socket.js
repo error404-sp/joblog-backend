@@ -33,8 +33,6 @@ function connectSocket() {
       "agent_health",
       {
         agentId: os.hostname(),
-        workers: workerPool.size(),
-        queueLength: queue.length(),
         memory: process.memoryUsage().rss,
         timestamp: new Date().toISOString(),
       },
