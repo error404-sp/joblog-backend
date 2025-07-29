@@ -1,5 +1,10 @@
 import { NextFunction, Request, Response } from "express";
-import { createJob, getAllJobs, getJobById } from "./job.helper";
+import {
+  createJob,
+  getAllJobs,
+  getJobById,
+  getJobOnlyById,
+} from "./job.helper";
 import { v4 as uuidv4 } from "uuid";
 import { jobQueue } from "../utils/jobQueue";
 
@@ -23,7 +28,6 @@ export async function handleCreateJob(
       priority,
       timeout,
     });
-    console.log(job, job.id);
     jobQueue.enqueue(job);
 
     return res.status(201).json({ success: true, job });
@@ -83,13 +87,14 @@ export const handleStopJob = async (
   const { id } = req.params;
 
   try {
-    const job = await getJobById(id);
+    const job = await getJobOnlyById(id);
 
     if (!job) {
       return res.status(404).json({ message: "Job not found" });
+    } else {
+      const { jobQuery: jobVal } = job;
+      jobQueue.enqueue({ ...jobVal, priority: 10, status: "cancelled" });
     }
-
-    jobQueue.enqueue({ ...job, priority: 10, status: "cancelled" });
 
     return res.status(200).json({
       message: "Job stop signal received. Preparing to stop...",

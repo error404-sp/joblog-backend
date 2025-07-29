@@ -24,15 +24,14 @@ export async function insertJobOutput(
   const id = uuidv4();
 
   await pool.query(
-    `INSERT INTO job_outputs (id, job_id, output, success, retries)
-     VALUES ($1, $2, $3, $4, 0)
+    `INSERT INTO job_outputs (id, job_id, output, success)
+     VALUES ($1, $2, $3, $4)
      ON CONFLICT (job_id)
      DO UPDATE SET 
         output = EXCLUDED.output,
         success = EXCLUDED.success,
         retries = CASE 
-                    WHEN job_outputs.retries < 3 THEN job_outputs.retries + 1
-                    ELSE job_outputs.retries
+                    job_outputs.retries + 1
                   END`,
     [id, job_id, output, success]
   );

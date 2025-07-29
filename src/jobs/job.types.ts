@@ -9,7 +9,7 @@ export interface Job {
   id: string;
   command: string;
   type: "script" | "command";
-  parameters?: Record<string, string>;
+  parameters?: any;
   priority?: number;
   timeout?: number;
   status?: JobStatus;

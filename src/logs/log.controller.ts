@@ -23,7 +23,10 @@ export function initSocket(server: http.Server) {
 
     socket.on("job_stop", async ({ jobId }) => {
       const job = await getJobOnlyById(jobId);
-      jobQueue.enqueue({ ...job, priority: 10, status: "cancelled" });
+      if (job) {
+        const { jobQuery: jobVal } = job;
+        jobQueue.enqueue({ ...jobVal, priority: 10, status: "cancelled" });
+      }
     });
     // Listen for logs
     socket.on("log", async ({ jobId, log }) => {
@@ -40,8 +43,8 @@ export function initSocket(server: http.Server) {
       try {
         switch (status) {
           case "cancelled":
-            io.emit(`job_status_${jobId}`, { status, time: Date.now() });
             await updateJobStatus(jobId, "cancelled");
+            io.emit(`job_status_${jobId}`, { status, time: Date.now() });
             break;
           case "queued":
             io.emit(`job_status_${jobId}`, { status, time: Date.now() });
@@ -79,7 +82,10 @@ export function initSocket(server: http.Server) {
             // Retry logic: fetch job and requeue
             const job = await getJobOnlyById(jobId);
             if (job) {
-              jobQueue.enqueue({ ...job, priority: 5 });
+              const { jobQuery: jobVal } = job;
+              if (retries < 3) {
+                jobQueue.enqueue({ ...jobVal, priority: 5, status: "queued" });
+              }
             }
             break;
 
@@ -88,27 +94,6 @@ export function initSocket(server: http.Server) {
         }
       } catch (error) {
         console.error(`Error handling status for job ${jobId}:`, error);
-      }
-    });
-
-    socket.on("agent_health", async (data, ack) => {
-      try {
-        console.log(`✅ Health update from ${data.agentId}:`, data);
-        const { agentId, workers, queueLength, memory } = data;
-        await updateHealthStats(data);
-
-        io.emit("agent:health", {
-          agentId: data.agentId,
-          workers: data.workers,
-          queueLength: data.queueLength,
-          memory: data.memory,
-          time: Date.now(),
-        });
-
-        ack({ success: true });
-      } catch (err) {
-        console.error("❌ Failed to handle agent_health:", err);
-        ack({ success: false });
       }
     });
 

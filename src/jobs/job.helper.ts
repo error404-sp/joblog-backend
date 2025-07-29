@@ -59,9 +59,9 @@ export async function getJobById(id: string): any {
   );
 
   const result = {
-    jobQuery,
-    outputQuery,
-    logsQuery,
+    job: jobQuery.rows[0] || null,
+    output: outputQuery.rows[0] || null,
+    log: logsQuery.rowCount > 0 ? logsQuery.rows : [],
   };
   return result;
 }

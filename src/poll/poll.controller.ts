@@ -13,7 +13,6 @@ export const pollJobs = async (
 
   const jobs = jobQueue.batchDequeue(batchSize);
   if (jobs.length > 0) {
-    console.log(jobs);
     return res.json({ jobs });
   }
 
@@ -26,7 +25,6 @@ export const pollJobs = async (
   const onJob = () => {
     cleanup();
     const newJobs = jobQueue.batchDequeue(batchSize);
-    console.log(newJobs);
     if (!res.writableEnded) res.json({ jobs: newJobs });
   };
 
