@@ -40,6 +40,7 @@ export function initSocket(server: http.Server) {
 
     // Listen for status changes
     socket.on("status", async ({ jobId, status, output }) => {
+      console.log(status);
       try {
         switch (status) {
           case "cancelled":
@@ -78,16 +79,17 @@ export function initSocket(server: http.Server) {
               retries,
               time: Date.now(),
             });
-
-            // Retry logic: fetch job and requeue
-            const job = await getJobOnlyById(jobId);
-            if (job) {
-              const { jobQuery: jobVal } = job;
-              if (retries < 3) {
-                jobQueue.enqueue({ ...jobVal, priority: 5, status: "queued" });
-              }
-            }
             break;
+
+          // // Retry logic: fetch job and requeue
+          // const job = await getJobOnlyById(jobId);
+          // if (job) {
+          //   const { jobQuery: jobVal } = job;
+          //   if (retries < 3) {
+          //     jobQueue.enqueue({ ...jobVal, priority: 5, status: "queued" });
+          //   }
+          // }
+          // break;
 
           default:
             console.warn(`Unknown status received: ${status}`);

@@ -22,15 +22,13 @@ export async function insertJobOutput(
   success: boolean
 ) {
   const id = uuidv4();
-
   await pool.query(
     `INSERT INTO job_outputs (id, job_id, output, success)
      VALUES ($1, $2, $3, $4)
      ON CONFLICT (job_id)
      DO UPDATE SET 
         output = EXCLUDED.output,
-        success = EXCLUDED.success,
-        `,
+        success = EXCLUDED.success`,
     [id, job_id, output, success]
   );
 }

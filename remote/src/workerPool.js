@@ -14,58 +14,64 @@ class WorkerPool {
   }
 
   runJob(job) {
-    if (job.id) {
-      // Handle cancelled job before assignment
-      if (job.status === "cancelled") {
-        sendUpdate("log", { log: `Job ${job.id} cancelled` });
-        sendUpdate("status", job.id, { status: "cancelled" });
-        this.cancelJob(job.id);
-        return;
+    if (!job.id) return;
+
+    // Handle cancelled job before assignment
+    if (job.status === "cancelled") {
+      this.cancelJob(job.id);
+      sendUpdate("status", job.id, { status: "cancelled" });
+      return;
+    }
+
+    const worker = new Worker(path.resolve(__dirname, "./workers/worker.js"), {
+      workerData: job,
+    });
+
+    // Track active worker
+    this.activeWorkers.set(job.id, worker);
+
+    worker.on("message", (data) => {
+      const { type, jobId, data: payload } = data;
+
+      if (type === "status") {
+        // Remove cancelled jobs
+        if (payload.status === "cancelled") {
+          this.cancelJob(jobId);
+        }
+        // Remove completed/failed jobs
+        if (["completed", "failed"].includes(payload.status)) {
+          this.activeWorkers.delete(jobId);
+        }
       }
 
-      const worker = new Worker(
-        path.resolve(__dirname, "./workers/worker.js"),
-        {
-          workerData: job,
-        }
-      );
+      sendUpdate(type, jobId, payload);
+    });
 
-      worker.on("message", (data) => {
-        const { type, jobId, data: payload } = data;
-        sendUpdate(type, jobId, payload);
-        if (type === "status" && ["cancelled"].includes(payload.status)) {
-          send("log", { log: `Job ${job.id} cancelled` });
-          this.cancelJob(job.id);
-        } else if (
-          type === "status" &&
-          ["completed", "failed"].includes(payload.status)
-        ) {
-          this.activeWorkers.delete(job.id);
-        }
-      });
+    worker.on("error", (err) => {
+      console.error(`Worker error for job ${job.id}:`, err.message);
+      sendUpdate("status", job.id, { status: "failed", output: err.message });
+      this.activeWorkers.delete(job.id);
+    });
 
-      worker.on("error", (err) => {
-        console.error(`Worker error for job ${job.id}:`, err.message);
-        sendUpdate("status", job.id, { status: "failed", output: err.message });
-        this.activeWorkers.delete(job.id);
-      });
-
-      worker.on("exit", (code) => {
-        if (code !== 0) {
-          console.warn(`Worker for job ${job.id} exited with code ${code}`);
-        }
-        this.activeWorkers.delete(job.id);
-      });
-    }
+    worker.on("exit", (code) => {
+      if (code !== 0) {
+        console.warn(`Worker for job ${job.id} exited with code ${code}`);
+      }
+      this.activeWorkers.delete(job.id);
+    });
   }
 
   cancelJob(jobId) {
     const worker = this.activeWorkers.get(jobId);
     if (worker) {
-      console.log(`Cancelling job ${jobId}`);
+      worker.postMessage({ type: "cancel" });
+
+      // Force terminate if it doesn't exit
+
       worker.terminate();
-      sendUpdate("status", jobId, { status: "cancelled" });
       this.activeWorkers.delete(jobId);
+
+      sendUpdate("status", jobId, { status: "cancelled" });
       return true;
     }
     return false;
@@ -73,8 +79,9 @@ class WorkerPool {
 
   cleanupAll() {
     for (const [jobId, worker] of this.activeWorkers.entries()) {
+      worker.postMessage({ type: "cancel" });
       worker.terminate();
-      sendUpdate("status", job.id, { status: "cancelled" });
+      sendUpdate("status", jobId, { status: "cancelled" });
     }
     this.activeWorkers.clear();
   }
